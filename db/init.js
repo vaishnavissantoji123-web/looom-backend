@@ -12,7 +12,7 @@ export async function initDatabase(){
 
 
     }catch(err){
-        console.error("Database Initial failed;",error);
+        console.error("Database Initial failed;",err);
         console.log(schemaPath)
     }
 

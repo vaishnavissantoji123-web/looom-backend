@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS likes (
 ----------------------------------
 -- FOLLOWS TABLE
 ----------------------------------
-CREATE TABLE follows ( 
+CREATE TABLE IF NOT EXISTS follows ( 
     follower_id UUID REFERENCES users(user_id) ON DELETE CASCADE, 
     following_id UUID REFERENCES users(user_id) ON DELETE CASCADE, 
     PRIMARY KEY (follower_id, following_id), 

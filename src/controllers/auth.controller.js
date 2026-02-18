@@ -23,6 +23,6 @@ export const login = asyncHandler(async (req, res) => {
   if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
-  const token = jwt.sign({ user_id: user.user_id,name:user.username }, process.env.JWT_SECRET);
+  const token = jwt.sign({ user_id: user.user_id,username:user.username }, process.env.JWT_SECRET);
   res.json({ token })
 });

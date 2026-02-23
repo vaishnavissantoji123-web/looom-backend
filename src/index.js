@@ -8,7 +8,7 @@ import postRoutes from "./routes/posts.routes.js";
 import likesFollowRoutes from "./routes/likes-follow.routes.js";
 import { errorHandler } from "./middleware/error.js";
 
-const allowedOrigins = ["http://localhost:5174"];
+const allowedOrigins = ["http://localhost:5174","http://localhost:5173"];
 
 const app = express();
 

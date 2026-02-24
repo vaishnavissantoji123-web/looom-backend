@@ -6,8 +6,6 @@ export const toggleLike = asyncHandler(async (req, res) => {
   const userId = req.user.user_id;
   const { action } = req.body;
 
-  res.json({ postId, userId, action });
-
   if (!["like", "unlike"].includes(action)) {
     return res.status(400).json({ error: "Invalid action" });
   }

@@ -15,3 +15,19 @@ export function auth(req, res, next) {
     res.sendStatus(403);
   }
 }
+
+export const optionalAuth = (req, res, next) => {
+  const header = req.headers.authorization;
+
+  if (!header) return next();
+
+  try {
+    const token = header.split(" ")[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+  } catch (err) {
+    // ignore invalid tokens silently
+  }
+
+  next();
+};

@@ -57,7 +57,15 @@ CREATE INDEX IF NOT EXISTS idx_posts_parent_id ON posts(parent_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
+-- Enable search index on posts content
+CREATE INDEX IF NOT EXISTS idx_posts_search
+ON posts
+USING GIN (to_tsvector('simple', content));
 
+-- Enable search index on usernames
+CREATE INDEX IF NOT EXISTS idx_users_search
+ON users
+USING GIN (to_tsvector('simple', username));
 ----------------------------------
 -- TRIGGER FUNCTIONS
 ----------------------------------

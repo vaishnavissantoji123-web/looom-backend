@@ -7,6 +7,8 @@ import authRoutes from "./routes/auth.routes.js";
 import postRoutes from "./routes/posts.routes.js";
 import likesFollowRoutes from "./routes/likes-follow.routes.js";
 import { errorHandler } from "./middleware/error.js";
+import searchRoutes from "./routes/search.routes.js";
+
 
 const allowedOrigins = ["http://localhost:5174","http://localhost:5173"];
 
@@ -38,7 +40,7 @@ app.use("/api/v1/posts", postRoutes);
 
 // Likes and follows routes
 app.use("/api/v1", likesFollowRoutes);
-
+app.use("/api/v1/search",searchRoutes);
 app.use(errorHandler); // must be last
 
 const PORT = process.env.PORT || 3000;

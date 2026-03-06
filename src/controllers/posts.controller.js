@@ -15,15 +15,14 @@ const postSelect = (withLiked = false) => `
   p.replies_count,
   p.created_at,
   u.username
-  ${
-    withLiked
-      ? `,
+  ${withLiked
+    ? `,
   EXISTS (
     SELECT 1 FROM likes l
     WHERE l.post_id = p.post_id
     AND l.user_id = $USER_ID
   ) AS liked`
-      : ``
+    : ``
   }
 `;
 
@@ -41,16 +40,23 @@ export const createPost = asyncHandler(async (req, res) => {
       return res.status(404).json({ error: "Parent post not found" });
     }
   }
-
-  const result = await pool.query(
-    `INSERT INTO posts (user_id, content, parent_id)
-     VALUES ($1,$2,$3)
-     RETURNING post_id, content, parent_id, likes_count, replies_count, created_at`,
-    [req.user.user_id, content, parent_id || null],
+  const inserted = await pool.query(`
+    INSERT INTO posts(user_id,content,parent_id) VALUES ($1,$2,$3)
+    RETURNING post_id`,
+    [req.user.user_id, content, parent_id || null]
   );
+  const result = await pool.query(
+    `SELECT ${postSelect().trim()} FROM posts p
+    JOIN users u ON u.user_id=p.user_id
+    WHERE p.post_id=$1`,
+    [inserted.rows[0].post_id]
+  );
+  res.status(201).json(result.rows[0])
+})
 
-  res.status(201).json(result.rows[0]);
-});
+
+
+
 
 //
 // Global Feed (Top-Level Posts)

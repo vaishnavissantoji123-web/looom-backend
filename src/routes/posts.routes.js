@@ -17,7 +17,7 @@ router.post("/", auth, requireFields(["content"]), createPost);
 router.get("/feed", optionalAuth, getFeed);
 router.get("/user/:userId", getUserPosts);
 router.get("/:postId/replies", getReplies);
-router.get("/:postId", getPostThread);
+router.get("/:postId",optionalAuth, getPostThread);
 
 router.delete("/:postId", auth, deletePost);
 

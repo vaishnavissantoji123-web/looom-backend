@@ -14,15 +14,17 @@ const postSelect = (withLiked = false) => `
   p.likes_count,
   p.replies_count,
   p.created_at,
-  u.username
-  ${withLiked
-    ? `,
+  u.username,
+  u.user_id
+  ${
+    withLiked
+      ? `,
   EXISTS (
     SELECT 1 FROM likes l
     WHERE l.post_id = p.post_id
     AND l.user_id = $USER_ID
   ) AS liked`
-    : ``
+      : ``
   }
 `;
 
@@ -40,23 +42,24 @@ export const createPost = asyncHandler(async (req, res) => {
       return res.status(404).json({ error: "Parent post not found" });
     }
   }
-  const inserted = await pool.query(`
-    INSERT INTO posts(user_id,content,parent_id) VALUES ($1,$2,$3)
-    RETURNING post_id`,
-    [req.user.user_id, content, parent_id || null]
+
+  const inserted = await pool.query(
+    `INSERT INTO posts (user_id, content, parent_id)
+     VALUES ($1,$2,$3)
+     RETURNING post_id`,
+    [req.user.user_id, content, parent_id || null],
   );
+
   const result = await pool.query(
-    `SELECT ${postSelect().trim()} FROM posts p
-    JOIN users u ON u.user_id=p.user_id
-    WHERE p.post_id=$1`,
-    [inserted.rows[0].post_id]
+    `SELECT ${postSelect().trim()}
+     FROM posts p
+     JOIN users u ON u.user_id = p.user_id
+     WHERE p.post_id = $1`,
+    [inserted.rows[0].post_id],
   );
-  res.status(201).json(result.rows[0])
-})
 
-
-
-
+  res.status(201).json(result.rows[0]);
+});
 
 //
 // Global Feed (Top-Level Posts)
@@ -150,7 +153,7 @@ export const getUserPosts = asyncHandler(async (req, res) => {
     SELECT ${postSelect(true).replace("$USER_ID", "$2")}
     FROM posts p
     JOIN users u ON u.user_id = p.user_id
-    WHERE p.user_id=$1 AND p.parent_id IS NULL
+    WHERE p.user_id=$1
     ORDER BY p.created_at DESC
     LIMIT $3 OFFSET $4
     `,

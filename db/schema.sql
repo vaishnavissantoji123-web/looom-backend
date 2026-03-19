@@ -37,8 +37,12 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE TABLE IF NOT EXISTS likes (
     user_id UUID REFERENCES users(user_id) ON DELETE CASCADE,
     post_id UUID REFERENCES posts(post_id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (user_id, post_id)
 );
+
+ALTER TABLE likes
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 ----------------------------------
 -- FOLLOWS TABLE
@@ -46,9 +50,14 @@ CREATE TABLE IF NOT EXISTS likes (
 CREATE TABLE IF NOT EXISTS follows ( 
     follower_id UUID REFERENCES users(user_id) ON DELETE CASCADE, 
     following_id UUID REFERENCES users(user_id) ON DELETE CASCADE, 
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (follower_id, following_id), 
     CHECK (follower_id <> following_id)
 );
+
+
+ALTER TABLE follows
+ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 ----------------------------------
 -- INDEXES
@@ -57,6 +66,7 @@ CREATE INDEX IF NOT EXISTS idx_posts_parent_id ON posts(parent_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created_at ON posts(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
+
 -- Enable search index on posts content
 CREATE INDEX IF NOT EXISTS idx_posts_search
 ON posts
@@ -66,6 +76,14 @@ USING GIN (to_tsvector('simple', content));
 CREATE INDEX IF NOT EXISTS idx_users_search
 ON users
 USING GIN (to_tsvector('simple', username));
+
+-- Activity feeds need time ordering.
+CREATE INDEX idx_likes_created_at
+ON likes(created_at DESC);
+
+CREATE INDEX idx_follows_created_at
+ON follows(created_at DESC);
+
 ----------------------------------
 -- TRIGGER FUNCTIONS
 ----------------------------------

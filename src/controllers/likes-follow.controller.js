@@ -47,10 +47,6 @@ export const toggleFollow = asyncHandler(async (req, res) => {
   const userId = req.user.user_id;
   const { action } = req.body;
 
-  if (!["follow", "unfollow"].includes(action)) {
-    return res.status(400).json({ error: "Invalid action" });
-  }
-
   if (targetUser === userId) {
     return res.status(400).json({ error: "Cannot follow yourself" });
   }
@@ -58,25 +54,41 @@ export const toggleFollow = asyncHandler(async (req, res) => {
   const user = await pool.query("SELECT user_id FROM users WHERE user_id=$1", [
     targetUser,
   ]);
+
   if (!user.rowCount) {
     return res.status(404).json({ error: "User not found" });
   }
 
+  if (!["follow", "unfollow"].includes(action)) {
+    return res.status(400).json({ error: "Invalid action" });
+  }
+
   if (action === "follow") {
     await pool.query(
-      "INSERT INTO follows (follower_id, following_id) VALUES ($1,$2) ON CONFLICT DO NOTHING",
+      `INSERT INTO follows (follower_id, following_id)
+       VALUES ($1,$2)
+       ON CONFLICT DO NOTHING`,
       [userId, targetUser],
     );
   }
 
   if (action === "unfollow") {
     await pool.query(
-      "DELETE FROM follows WHERE follower_id=$1 AND following_id=$2",
+      `DELETE FROM follows
+       WHERE follower_id=$1 AND following_id=$2`,
       [userId, targetUser],
     );
   }
 
+  const count = await pool.query(
+    `SELECT COUNT(*)::int AS followers_count
+     FROM follows
+     WHERE following_id=$1`,
+    [targetUser],
+  );
+
   res.json({
     following: action === "follow",
+    followers_count: count.rows[0].followers_count,
   });
 });

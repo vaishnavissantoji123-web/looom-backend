@@ -65,8 +65,11 @@ if (process.env.NODE_ENV !== "production") {
     }
   }
 
+  // Hello
+
   startLocalServer();
 }
 
 // Export the app for Vercel's Serverless handler
 export default app;
+

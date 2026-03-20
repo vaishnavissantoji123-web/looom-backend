@@ -78,10 +78,10 @@ ON users
 USING GIN (to_tsvector('simple', username));
 
 -- Activity feeds need time ordering.
-CREATE INDEX idx_likes_created_at
+CREATE INDEX IF NOT EXISTS idx_likes_created_at
 ON likes(created_at DESC);
 
-CREATE INDEX idx_follows_created_at
+CREATE INDEX IF NOT EXISTS idx_follows_created_at
 ON follows(created_at DESC);
 
 ----------------------------------

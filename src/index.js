@@ -11,10 +11,14 @@ import activityRoutes from "./routes/activity.routes.js";
 import likesFollowRoutes from "./routes/likes-follow.routes.js";
 import { errorHandler } from "./middleware/error.js";
 
-const app = express();
+// allow frontend origin
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3001",
+  process.env.CLIENT_URL,
+].filter(Boolean);
 
-// Add your production frontend URL to this list!
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3001"];
+const app = express();
 
 app.use(
   cors({
@@ -30,44 +34,58 @@ app.use(
 
 app.use(express.json());
 
-// Basic health check
 app.get("/", (req, res) => {
-  res.json({ message: "API running", env: process.env.NODE_ENV });
+  res.json({ message: "API running" });
 });
 
-// Routes
+// auth routes
 app.use("/api/v1/auth", authRoutes);
+
+// posts routes
 app.use("/api/v1/posts", postRoutes);
+
+// Likes and follows routes
 app.use("/api/v1", likesFollowRoutes);
+
+// Search Routes
 app.use("/api/v1/search", searchRoutes);
+
+// User Routes
 app.use("/api/v1/users", usersRoutes);
+
+// Activity Routes
 app.use("/api/v1/activity", activityRoutes);
 
-app.use(errorHandler);
+app.use(errorHandler); // must be last
 
-// --- VERCEL VS LOCAL LOGIC ---
-
-if (process.env.NODE_ENV !== "production") {
-  // Only run this in local development
-  const PORT = process.env.PORT || 3000;
-  
-  async function startLocalServer() {
-    try {
-      await pool.query("SELECT 1");
-      console.log("Database connection verified");
-      await initDatabase();
-      
-      app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
-      });
-    } catch (err) {
-      console.error("Failed to start local server:", err);
-    }
-  }
-
-  startLocalServer();
-}
-
-// Export the app for Vercel's Serverless handler
+// Export the app for Vercel Serverless Functions
 export default app;
 
+// Only start the server if not in production
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  // Separate local start logic
+  pool.query("SELECT 1").then(() => {
+    console.log("Database connected");
+    app.listen(PORT, () => console.log(`Local server on ${PORT}`));
+  });
+}
+
+// STARTUP SEQUENCE
+async function startServer() {
+  try {
+    await pool.query("SELECT 1");
+    console.log("Database connection verified");
+
+    await initDatabase();
+    console.log("Database Initialized");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("Failed to connect to database");
+    console.error(err);
+    process.exit(1); // Stop app if DB fails
+  }
+}

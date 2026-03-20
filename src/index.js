@@ -13,7 +13,7 @@ import { errorHandler } from "./middleware/error.js";
 
 const app = express();
 
-// 1. CORS Configuration
+// --- CORS ---
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001",
@@ -35,25 +35,7 @@ app.use(
 
 app.use(express.json());
 
-// 2. Database Connection Middleware (Serverless Friendly)
-// This ensures the DB is ready before handling requests without blocking the boot process
-let isDbInitialized = false;
-app.use(async (req, res, next) => {
-  if (!isDbInitialized) {
-    try {
-      await pool.query("SELECT 1");
-      await initDatabase();
-      isDbInitialized = true;
-      console.log("Database Initialized");
-    } catch (err) {
-      console.error("Database connection failed:", err);
-      return res.status(500).json({ error: "Database connection failed" });
-    }
-  }
-  next();
-});
-
-// 3. Routes
+// --- ROUTES ---
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
 });
@@ -65,16 +47,39 @@ app.use("/api/v1/search", searchRoutes);
 app.use("/api/v1/users", usersRoutes);
 app.use("/api/v1/activity", activityRoutes);
 
-// 4. Error Handling (Must be last)
 app.use(errorHandler);
 
-// 5. Execution Logic
-if (process.env.NODE_ENV !== "production") {
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Local server running on http://localhost:${PORT}`);
-  });
+// --- STARTUP LOGIC ---
+
+async function initialize() {
+  try {
+    await pool.query("SELECT 1");
+    console.log("✅ Database connection verified");
+    await initDatabase();
+    console.log("✅ Database tables initialized");
+  } catch (err) {
+    console.error("❌ Database initialization failed:", err);
+    // In dev, we might want to exit. In prod, the function will just fail this request.
+    if (process.env.NODE_ENV !== "production") {
+      process.exit(1);
+    }
+  }
 }
 
-// CRITICAL: Export for Vercel
+if (process.env.NODE_ENV !== "production") {
+  // DEV MODE: Use traditional app.listen and init immediately
+  const PORT = process.env.PORT || 3000;
+  
+  initialize().then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Local server running on http://localhost:${PORT}`);
+    });
+  });
+} else {
+  // PRODUCTION MODE (Vercel): 
+  // We run initDatabase once when the lambda is first "warmed up"
+  initialize();
+}
+
+// Export for Vercel
 export default app;

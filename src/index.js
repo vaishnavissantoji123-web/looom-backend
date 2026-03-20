@@ -11,14 +11,14 @@ import activityRoutes from "./routes/activity.routes.js";
 import likesFollowRoutes from "./routes/likes-follow.routes.js";
 import { errorHandler } from "./middleware/error.js";
 
-// allow frontend origin
+const app = express();
+
+// 1. CORS Configuration
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001",
   process.env.CLIENT_URL,
 ].filter(Boolean);
-
-const app = express();
 
 app.use(
   cors({
@@ -29,65 +29,52 @@ app.use(
         callback(new Error("Not allowed by CORS"));
       }
     },
-  }),
+    credentials: true,
+  })
 );
 
 app.use(express.json());
 
+// 2. Database Connection Middleware (Serverless Friendly)
+// This ensures the DB is ready before handling requests without blocking the boot process
+let isDbInitialized = false;
+app.use(async (req, res, next) => {
+  if (!isDbInitialized) {
+    try {
+      await pool.query("SELECT 1");
+      await initDatabase();
+      isDbInitialized = true;
+      console.log("Database Initialized");
+    } catch (err) {
+      console.error("Database connection failed:", err);
+      return res.status(500).json({ error: "Database connection failed" });
+    }
+  }
+  next();
+});
+
+// 3. Routes
 app.get("/", (req, res) => {
   res.json({ message: "API running" });
 });
 
-// auth routes
 app.use("/api/v1/auth", authRoutes);
-
-// posts routes
 app.use("/api/v1/posts", postRoutes);
-
-// Likes and follows routes
 app.use("/api/v1", likesFollowRoutes);
-
-// Search Routes
 app.use("/api/v1/search", searchRoutes);
-
-// User Routes
 app.use("/api/v1/users", usersRoutes);
-
-// Activity Routes
 app.use("/api/v1/activity", activityRoutes);
 
-app.use(errorHandler); // must be last
+// 4. Error Handling (Must be last)
+app.use(errorHandler);
 
-// STARTUP SEQUENCE
-async function startServer() {
-  try {
-    await pool.query("SELECT 1");
-    console.log("Database connection verified");
-
-    await initDatabase();
-    console.log("Database Initialized");
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port http://localhost:${PORT}`);
-    });
-  } catch (err) {
-    console.error("Failed to connect to database");
-    console.error(err);
-    process.exit(1); // Stop app if DB fails
-  }
-}
-
-// Export the app for Vercel Serverless Functions
-export default app;
-
-// Only start the server if not in production
+// 5. Execution Logic
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
-  // Separate local start logic
-  pool.query("SELECT 1").then(() => {
-    console.log("Database connected");
-    app.listen(PORT, () => console.log(`Local server on ${PORT}`));
+  app.listen(PORT, () => {
+    console.log(`Local server running on http://localhost:${PORT}`);
   });
-} else {
-  startServer();
 }
+
+// CRITICAL: Export for Vercel
+export default app;

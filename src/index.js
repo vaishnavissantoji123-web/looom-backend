@@ -15,7 +15,7 @@ import { errorHandler } from "./middleware/error.js";
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:3001",
-  "https://looom-frontend-lilac.vercel.app/",
+  "https://looom-frontend-lilac.vercel.app",
   process.env.CLIENT_URL,
 ].filter(Boolean);
 

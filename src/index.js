@@ -32,7 +32,7 @@ app.use(
     },
   }),
 );
-
+console.log(allowedOrigins);
 app.use(express.json());
 
 app.get("/", (req, res) => {
